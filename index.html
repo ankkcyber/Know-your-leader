@@ -1,140 +1,313 @@
 <!DOCTYPE html>
-<html>
-  <head>
-    <meta charset="UTF-8">
-    <title>Know Your Leader</title>
-    <style>
-      body { font-family: Arial, sans-serif; max-width: 500px; margin: 40px auto; padding: 0 16px; }
-      input { padding: 8px; font-size: 16px; width: 120px; }
-      button { padding: 8px 14px; font-size: 16px; cursor: pointer; }
-      .card { display: flex; gap: 12px; border: 1px solid #ccc; border-radius: 8px; padding: 12px; margin-top: 16px; }
-      .photo { width: 64px; height: 64px; border-radius: 50%; object-fit: cover; background: #ddd;
-               display: flex; align-items: center; justify-content: center; font-weight: bold; flex-shrink: 0; }
-      .label { font-size: 12px; color: #666; text-transform: uppercase; }
-      .note { color: #444; margin-top: 16px; }
-    </style>
-  </head>
-  <body>
-    <h1>Know Your Leader</h1>
-    <p>Enter your postcode to find your members of parliament.</p>
+<html lang="en-AU">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Know Your Leader – find your members of parliament</title>
+<meta name="description" content="Enter your postcode to find your federal member of parliament and where to look up your state member.">
+<style>
+  :root { --paper:#F6F7F2; --ink:#14211A; --muted:#55625A; --green:#1E5B3A; --deep:#123B26; --line:#D3D9CE; --tint:#E4EDE4; --slate:#34506B; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--paper); color: var(--ink); font: 17px/1.6 -apple-system, "Segoe UI", Helvetica, Arial, sans-serif; }
+  h1, h2, h3 { font-family: Georgia, "Times New Roman", serif; line-height: 1.2; margin: 0; }
+  a { color: var(--green); }
+  .wrap { max-width: 880px; margin: 0 auto; padding: 0 20px; }
+  :focus-visible { outline: 3px solid #f2c14e; outline-offset: 2px; }
 
-    <input id="postcode" placeholder="e.g. 2000" maxlength="4">
-    <button onclick="lookup()">Find</button>
+  .hero { background: var(--deep); color: #fff; padding: 56px 0 52px; }
+  .hero h1 { font-size: clamp(2rem, 5vw, 3.25rem); max-width: 14em; }
+  .hero p { max-width: 34em; color: #d6e4da; margin: 16px 0 28px; }
+  form { display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end; }
+  label { display: block; font-size: .9rem; margin-bottom: 6px; color: #d6e4da; }
+  input { font: inherit; font-size: 1.25rem; padding: 10px 14px; width: 9em; border: 2px solid transparent; border-radius: 6px; letter-spacing: .1em; }
+  button { font: inherit; font-weight: 600; padding: 12px 24px; border: 0; border-radius: 6px; background: #fff; color: var(--deep); cursor: pointer; }
+  button:hover { background: var(--tint); }
 
-    <div id="results"></div>
+  #results-section { padding: 36px 0 8px; }
+  #results-section h2 { font-size: 1.6rem; }
+  .member-block { padding: 22px 0; border-bottom: 1px solid var(--line); }
+  .member { display: flex; gap: 18px; }
+  .parl { margin-top: 18px; padding-left: 16px; border-left: 3px solid var(--line); }
+  .parl h4 { font: 700 1.05rem Georgia, serif; margin: 0 0 4px; }
+  .parl-list { list-style: none; margin: 0; padding: 0; }
+  .parl-list li { padding: 12px 0; border-top: 1px solid var(--line); }
+  .parl-list li:first-child { border-top: 0; }
+  .parl-date { color: var(--muted); font-size: .85rem; }
+  .parl-title { font-weight: 600; }
+  .parl-text { margin: 4px 0; color: #2c3a31; max-width: 40em; }
+  .parl-more { margin: 8px 0 0; font-size: .9rem; }
+  .photo { width: 88px; height: 88px; border-radius: 50%; object-fit: cover; background: var(--tint); color: var(--green);
+           display: flex; align-items: center; justify-content: center; font: 700 1.6rem Georgia, serif; flex-shrink: 0; }
+  .member h3 { font-size: 1.45rem; }
+  .meta { color: var(--muted); margin: 2px 0 0; }
+  .role { display: inline-block; margin-top: 8px; padding: 2px 10px; border-left: 3px solid var(--green); background: var(--tint); font-size: .95rem; }
+  .note { margin: 18px 0 0; padding: 12px 16px; border-left: 3px solid var(--slate); background: #fff; }
+  .state { margin-top: 24px; }
+  .state h3 { font-size: 1.25rem; color: var(--slate); }
 
-    <script>
-      // Paste your Lambda function URL between the quotes.
-      const FUNCTION_URL = "https://qbibqrc677wlnmrkywskgblcxu0hikmp.lambda-url.ap-southeast-2.on.aws/";
+  section.block { padding: 48px 0 0; }
+  section.block > .wrap > h2 { font-size: 1.7rem; margin-bottom: 20px; }
+  .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 28px; list-style: none; margin: 0; padding: 0; }
+  .steps li { border-top: 3px solid var(--green); padding-top: 12px; }
+  .steps b { display: block; font: 700 1.1rem Georgia, serif; margin-bottom: 4px; }
+  .steps span { color: var(--muted); font-size: .95rem; }
+  .levels { display: grid; grid-template-columns: 1fr 1fr; gap: 0; }
+  .levels > div { padding: 0 28px 0 0; }
+  .levels > div + div { padding: 0 0 0 28px; border-left: 1px solid var(--line); }
+  .levels h3 { font-size: 1.25rem; margin-bottom: 8px; }
+  .source { color: var(--muted); font-size: .85rem; margin-top: 20px; }
+  details { border-top: 1px solid var(--line); padding: 14px 0; }
+  details:last-of-type { border-bottom: 1px solid var(--line); }
+  summary { cursor: pointer; font-weight: 600; }
+  details p { margin: 10px 0 0; color: #2c3a31; max-width: 40em; }
 
-      function initials(name) {
-        return name.split(" ").map(word => word[0]).join("").slice(0, 2);
+  footer { background: var(--deep); color: #d6e4da; margin-top: 56px; padding: 28px 0; font-size: .9rem; }
+  footer a { color: #fff; }
+
+  @media (max-width: 640px) {
+    .steps, .levels { grid-template-columns: 1fr; }
+    .levels > div, .levels > div + div { padding: 0; border-left: 0; }
+    .levels > div + div { margin-top: 24px; padding-top: 24px; border-top: 1px solid var(--line); }
+    .member { gap: 14px; }
+    .photo { width: 64px; height: 64px; font-size: 1.2rem; }
+  }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="wrap">
+    <h1>Know who represents you in parliament</h1>
+    <p>Enter your postcode to see your federal member of parliament, and find out where to look up your state member.</p>
+    <form id="search" novalidate>
+      <div>
+        <label for="postcode">Your postcode</label>
+        <input id="postcode" inputmode="numeric" maxlength="4" autocomplete="postal-code" placeholder="e.g. 2000">
+      </div>
+      <button type="submit">Find my members</button>
+    </form>
+  </div>
+</header>
+
+<main>
+  <section id="results-section" hidden>
+    <div class="wrap" aria-live="polite">
+      <h2 id="results-title"></h2>
+      <div id="results"></div>
+      <div id="state" class="state"></div>
+    </div>
+  </section>
+
+  <section class="block">
+    <div class="wrap">
+      <h2>How it works</h2>
+      <ol class="steps">
+        <li><b>Enter your postcode</b><span>Four digits is all we need.</span></li>
+        <li><b>See your federal member</b><span>You get their name, party, electorate and any ministerial role they hold.</span></li>
+        <li><b>Find your state member</b><span>We point you to your state electoral commission, which can match your full address.</span></li>
+      </ol>
+    </div>
+  </section>
+
+  <section class="block">
+    <div class="wrap">
+      <h2>Two levels of parliament, two different members</h2>
+      <div class="levels">
+        <div>
+          <h3>Your federal member</h3>
+          <p>Elected to the House of Representatives in Canberra to represent one local electorate. Federal members take part in debate on proposed national laws, and the party or coalition with the support of most members forms the government. Members face election at least every three years.</p>
+        </div>
+        <div>
+          <h3>Your state member</h3>
+          <p>Elected to your state parliament to represent a district, which covers a different area from your federal electorate. State parliaments make laws for their own state and run on their own election timetables. Your state member is a separate person from your federal member.</p>
+        </div>
+      </div>
+      <p class="source">Based on information from the Parliament of Australia and the Parliamentary Education Office.</p>
+    </div>
+  </section>
+
+  <section class="block">
+    <div class="wrap">
+      <h2>About this site</h2>
+      <details>
+        <summary>Why might I see more than one federal member?</summary>
+        <p>Postcodes weren’t designed around electoral boundaries, so one postcode can cover parts of several electorates. We show every member whose electorate overlaps your postcode. To confirm which electorate you live in, use the <a href="https://electorate.aec.gov.au/" target="_blank" rel="noopener">Australian Electoral Commission’s Find my electorate tool</a>.</p>
+      </details>
+      <details>
+        <summary>Where does the information come from?</summary>
+        <p>Names, parties, electorates, roles and photos come from <a href="https://www.openaustralia.org.au" target="_blank" rel="noopener">OpenAustralia</a>, a project that publishes parliamentary information. It can lag behind recent changes such as by-elections or ministry reshuffles.</p>
+      </details>
+      <details>
+        <summary>Who runs this site?</summary>
+        <p>It’s an independent project. It isn’t run by, or connected to, any government body, political party or candidate, and it doesn’t save or share the postcodes you enter.</p>
+      </details>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">Know Your Leader is an independent, non-partisan project. Federal member data from <a href="https://www.openaustralia.org.au" target="_blank" rel="noopener">OpenAustralia</a>.</div>
+</footer>
+
+<script>
+  // Paste your Lambda function URL between the quotes.
+  const FUNCTION_URL = "PASTE_YOUR_FUNCTION_URL_HERE";
+
+  const title = document.getElementById("results-title");
+  const section = document.getElementById("results-section");
+  const box = document.getElementById("results");
+  const stateBox = document.getElementById("state");
+
+  function el(tag, className, text) {
+    const node = document.createElement(tag);
+    if (className) node.className = className;
+    if (text) node.textContent = text;
+    return node;
+  }
+
+  function initials(name) {
+    return name.split(" ").map(word => word[0]).join("").slice(0, 2);
+  }
+
+  function formatDate(iso) {
+    const d = new Date(iso + "T00:00:00");
+    return isNaN(d) ? iso : d.toLocaleDateString("en-AU", { day: "numeric", month: "long", year: "numeric" });
+  }
+
+  function makeLink(text, href) {
+    const a = el("a", "", text);
+    a.href = href;
+    a.target = "_blank";
+    a.rel = "noopener";
+    return a;
+  }
+
+  function makeParliament(member) {
+    const wrap = el("div", "parl");
+    wrap.appendChild(el("h4", "", "In parliament"));
+
+    if (!Array.isArray(member.contributions)) {
+      wrap.appendChild(el("p", "meta", "We couldn’t load recent contributions just now."));
+    } else if (member.contributions.length === 0) {
+      wrap.appendChild(el("p", "meta", "No recent contributions found in the parliamentary record."));
+    } else {
+      const list = el("ul", "parl-list");
+      member.contributions.forEach(c => {
+        const li = el("li");
+        li.appendChild(el("div", "parl-date", formatDate(c.date)));
+        li.appendChild(el("div", "parl-title", c.title));
+        li.appendChild(el("p", "parl-text", c.excerpt));
+        if (c.url) li.appendChild(makeLink("Read the full record", c.url));
+        list.appendChild(li);
+      });
+      wrap.appendChild(list);
+    }
+
+    if (member.profile) {
+      const more = el("p", "parl-more");
+      more.appendChild(makeLink("See everything this member has said on OpenAustralia", member.profile));
+      wrap.appendChild(more);
+    }
+    return wrap;
+  }
+
+  function makeMember(member) {
+    const block = el("div", "member-block");
+    const row = el("div", "member");
+    block.appendChild(row);
+    block.appendChild(makeParliament(member));
+
+    const fallback = () => el("div", "photo", initials(member.name));
+    if (member.photo) {
+      const img = el("img", "photo");
+      img.src = member.photo;
+      img.alt = "Photo of " + member.name;
+      img.onerror = () => img.replaceWith(fallback());
+      row.appendChild(img);
+    } else {
+      row.appendChild(fallback());
+    }
+
+    const text = el("div");
+    text.appendChild(el("h3", "", member.name));
+    text.appendChild(el("p", "meta", member.party + " · Member for " + member.electorate));
+    (member.roles || []).forEach(role => text.appendChild(el("span", "role", role)));
+    row.appendChild(text);
+    return block;
+  }
+
+  function isNswPostcode(code) {
+    const n = Number(code);
+    return (n >= 2000 && n <= 2599) || (n >= 2619 && n <= 2899) || (n >= 2921 && n <= 2999);
+  }
+
+  function showMessage(heading, message) {
+    section.hidden = false;
+    title.textContent = heading;
+    box.textContent = "";
+    stateBox.textContent = "";
+    box.appendChild(el("p", "note", message));
+  }
+
+  function showState(code) {
+    stateBox.textContent = "";
+    stateBox.appendChild(el("h3", "", "Your state member"));
+    if (isNswPostcode(code)) {
+      const p = el("p");
+      p.append("The NSW Electoral Commission can match your full address to your state district. ");
+      const link = el("a", "", "Find your NSW state member");
+      link.href = "https://elections.nsw.gov.au";
+      link.target = "_blank";
+      link.rel = "noopener";
+      p.appendChild(link);
+      stateBox.appendChild(p);
+    } else {
+      stateBox.appendChild(el("p", "", "State member lookup for your state is coming soon."));
+    }
+  }
+
+  async function lookup(event) {
+    event.preventDefault();
+    const code = document.getElementById("postcode").value.trim();
+
+    if (!/^\d{4}$/.test(code)) {
+      showMessage("Check your postcode", "Please enter a four-digit postcode, for example 2000.");
+      return;
+    }
+
+    showMessage("Looking up " + code, "One moment…");
+
+    try {
+      const response = await fetch(FUNCTION_URL + "?postcode=" + code);
+      const data = await response.json();
+
+      if (!response.ok) {
+        showMessage("No result for " + code, data.error || "Something went wrong. Please try again.");
+        return;
       }
 
-      function makeCard(member) {
-        const card = document.createElement("div");
-        card.className = "card";
+      const many = data.members.length > 1;
+      title.textContent = (many ? "Your federal members for " : "Your federal member for ") + code;
+      box.textContent = "";
+      data.members.forEach(member => box.appendChild(makeMember(member)));
+      box.appendChild(el("p", "meta", "“In parliament” shows the opening of each member’s five most recent contributions in the House of Representatives, as recorded in Hansard, the official record of debates. Decisions made on the voices don’t record how each member voted, and a member who isn’t listed hasn’t necessarily been absent."));
 
-        // Photo, or initials if there is no photo or it fails to load
-        const showInitials = () => {
-          const circle = document.createElement("div");
-          circle.className = "photo";
-          circle.textContent = initials(member.name);
-          return circle;
-        };
-
-        if (member.photo) {
-          const img = document.createElement("img");
-          img.className = "photo";
-          img.src = member.photo;
-          img.alt = member.name;
-          img.onerror = () => img.replaceWith(showInitials());
-          card.appendChild(img);
-        } else {
-          card.appendChild(showInitials());
-        }
-
-        const text = document.createElement("div");
-
-        const label = document.createElement("div");
-        label.className = "label";
-        label.textContent = "Federal member for " + member.electorate;
-
-        const name = document.createElement("b");
-        name.textContent = member.name;
-
-        const party = document.createElement("span");
-        party.textContent = " (" + member.party + ")";
-
-        text.append(label, name, party);
-
-        if (member.roles && member.roles.length > 0) {
-          const roles = document.createElement("p");
-          roles.textContent = member.roles.join(", ");
-          text.appendChild(roles);
-        }
-
-        card.appendChild(text);
-        return card;
+      if (many) {
+        const note = el("p", "note", "This postcode covers more than one electorate, so every matching member is shown. ");
+        const link = el("a", "", "Check your electorate with the AEC");
+        link.href = "https://electorate.aec.gov.au/";
+        link.target = "_blank";
+        link.rel = "noopener";
+        note.appendChild(link);
+        box.appendChild(note);
       }
+      showState(code);
+    } catch (error) {
+      showMessage("Couldn’t reach the lookup service", "Please check your connection and try again.");
+    }
+  }
 
-      function addNote(box, text) {
-        const p = document.createElement("p");
-        p.className = "note";
-        p.textContent = text;
-        box.appendChild(p);
-      }
-
-      function isNswPostcode(code) {
-        const n = Number(code);
-        return (n >= 2000 && n <= 2599) || (n >= 2619 && n <= 2899) || (n >= 2921 && n <= 2999);
-      }
-
-      async function lookup() {
-        const code = document.getElementById("postcode").value.trim();
-        const box = document.getElementById("results");
-        box.textContent = "";
-
-        if (!/^\d{4}$/.test(code)) {
-          addNote(box, "Please enter a four-digit postcode.");
-          return;
-        }
-
-        addNote(box, "Looking up...");
-
-        try {
-          const response = await fetch(FUNCTION_URL + "?postcode=" + code);
-          const data = await response.json();
-          box.textContent = "";
-
-          if (!response.ok) {
-            addNote(box, data.error || "Something went wrong.");
-            return;
-          }
-
-          if (data.members.length > 1) {
-            addNote(box, "This postcode covers more than one electorate, so all matching members are shown.");
-          }
-          data.members.forEach(member => box.appendChild(makeCard(member)));
-
-          if (isNswPostcode(code)) {
-            const p = document.createElement("p");
-            p.className = "note";
-            const link = document.createElement("a");
-            link.href = "https://elections.nsw.gov.au";
-            link.target = "_blank";
-            link.rel = "noopener";
-            link.textContent = "Find your NSW state member (opens the NSW Electoral Commission)";
-            p.appendChild(link);
-            box.appendChild(p);
-          } else {
-            addNote(box, "State member lookup for this state is coming soon.");
-          }
-        } catch (error) {
-          box.textContent = "";
-          addNote(box, "Sorry, we couldn't reach the lookup service. Please try again.");
-        }
-      }
-    </script>
-  </body>
+  document.getElementById("search").addEventListener("submit", lookup);
+</script>
+</body>
 </html>
