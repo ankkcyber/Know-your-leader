@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8">
+    <title>Know Your Leader</title>
+    <style>
+      body { font-family: Arial, sans-serif; max-width: 500px; margin: 40px auto; padding: 0 16px; }
+      input { padding: 8px; font-size: 16px; width: 120px; }
+      button { padding: 8px 14px; font-size: 16px; cursor: pointer; }
+      .card { display: flex; gap: 12px; border: 1px solid #ccc; border-radius: 8px; padding: 12px; margin-top: 16px; }
+      .photo { width: 64px; height: 64px; border-radius: 50%; object-fit: cover; background: #ddd;
+               display: flex; align-items: center; justify-content: center; font-weight: bold; flex-shrink: 0; }
+      .label { font-size: 12px; color: #666; text-transform: uppercase; }
+      .note { color: #444; margin-top: 16px; }
+    </style>
+  </head>
+  <body>
+    <h1>Know Your Leader</h1>
+    <p>Enter your postcode to find your members of parliament.</p>
+
+    <input id="postcode" placeholder="e.g. 2000" maxlength="4">
+    <button onclick="lookup()">Find</button>
+
+    <div id="results"></div>
+
+    <script>
+      // Paste your Lambda function URL between the quotes.
+      const FUNCTION_URL = "https://qbibqrc677wlnmrkywskgblcxu0hikmp.lambda-url.ap-southeast-2.on.aws/";
+
+      function initials(name) {
+        return name.split(" ").map(word => word[0]).join("").slice(0, 2);
+      }
+
+      function makeCard(member) {
+        const card = document.createElement("div");
+        card.className = "card";
+
+        // Photo, or initials if there is no photo or it fails to load
+        const showInitials = () => {
+          const circle = document.createElement("div");
+          circle.className = "photo";
+          circle.textContent = initials(member.name);
+          return circle;
+        };
+
+        if (member.photo) {
+          const img = document.createElement("img");
+          img.className = "photo";
+          img.src = member.photo;
+          img.alt = member.name;
+          img.onerror = () => img.replaceWith(showInitials());
+          card.appendChild(img);
+        } else {
+          card.appendChild(showInitials());
+        }
+
+        const text = document.createElement("div");
+
+        const label = document.createElement("div");
+        label.className = "label";
+        label.textContent = "Federal member for " + member.electorate;
+
+        const name = document.createElement("b");
+        name.textContent = member.name;
+
+        const party = document.createElement("span");
+        party.textContent = " (" + member.party + ")";
+
+        text.append(label, name, party);
+
+        if (member.roles && member.roles.length > 0) {
+          const roles = document.createElement("p");
+          roles.textContent = member.roles.join(", ");
+          text.appendChild(roles);
+        }
+
+        card.appendChild(text);
+        return card;
+      }
+
+      function addNote(box, text) {
+        const p = document.createElement("p");
+        p.className = "note";
+        p.textContent = text;
+        box.appendChild(p);
+      }
+
+      function isNswPostcode(code) {
+        const n = Number(code);
+        return (n >= 2000 && n <= 2599) || (n >= 2619 && n <= 2899) || (n >= 2921 && n <= 2999);
+      }
+
+      async function lookup() {
+        const code = document.getElementById("postcode").value.trim();
+        const box = document.getElementById("results");
+        box.textContent = "";
+
+        if (!/^\d{4}$/.test(code)) {
+          addNote(box, "Please enter a four-digit postcode.");
+          return;
+        }
+
+        addNote(box, "Looking up...");
+
+        try {
+          const response = await fetch(FUNCTION_URL + "?postcode=" + code);
+          const data = await response.json();
+          box.textContent = "";
+
+          if (!response.ok) {
+            addNote(box, data.error || "Something went wrong.");
+            return;
+          }
+
+          if (data.members.length > 1) {
+            addNote(box, "This postcode covers more than one electorate, so all matching members are shown.");
+          }
+          data.members.forEach(member => box.appendChild(makeCard(member)));
+
+          if (isNswPostcode(code)) {
+            const p = document.createElement("p");
+            p.className = "note";
+            const link = document.createElement("a");
+            link.href = "https://elections.nsw.gov.au";
+            link.target = "_blank";
+            link.rel = "noopener";
+            link.textContent = "Find your NSW state member (opens the NSW Electoral Commission)";
+            p.appendChild(link);
+            box.appendChild(p);
+          } else {
+            addNote(box, "State member lookup for this state is coming soon.");
+          }
+        } catch (error) {
+          box.textContent = "";
+          addNote(box, "Sorry, we couldn't reach the lookup service. Please try again.");
+        }
+      }
+    </script>
+  </body>
+</html>
