@@ -80,6 +80,11 @@
   .go b { display: block; font: 700 1.05rem Georgia, serif; margin-bottom: 4px; }
   .go span { color: var(--muted); font-size: .92rem; }
 
+  .picker { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 14px; }
+  .pick { background: #fff; border: 1px solid var(--green); color: var(--green); padding: 10px 16px; font-size: 1rem; }
+  .pick:hover { background: var(--tint); }
+  .pick.small { padding: 6px 12px; font-size: .9rem; margin-bottom: 8px; }
+
   @media (max-width: 640px) {
     .go { grid-template-columns: 1fr; }
     .steps, .levels { grid-template-columns: 1fr; }
@@ -309,6 +314,79 @@
     title.insertAdjacentElement("afterend", button);
   }
 
+  // Suburb data: add real entries later, for example
+  // "2000": [{ suburb: "Suburb name", electorates: ["Electorate name"] }, ...]
+  const SUBURB_DATA = {};
+  // TEST_MODE builds placeholder suburbs so the picker can be tried before real data is loaded.
+  const TEST_MODE = true;
+
+  const SPOKEN_NOTE = "“In parliament” shows the opening of each member’s five most recent contributions in the House of Representatives, as recorded in Hansard, the official record of debates. Decisions made on the voices don’t record how each member voted, and a member who isn’t listed hasn’t necessarily been absent.";
+
+  function suburbOptions(code, members) {
+    if (SUBURB_DATA[code]) return SUBURB_DATA[code];
+    if (TEST_MODE && members.length > 1) {
+      const options = members.map((m, i) => ({ suburb: "Sample suburb " + (i + 1), electorates: [m.electorate] }));
+      options.push({ suburb: "Sample suburb split between electorates", electorates: members.map(m => m.electorate) });
+      return options;
+    }
+    return null;
+  }
+
+  function showResults(code, members) {
+    const options = members.length > 1 ? suburbOptions(code, members) : null;
+    if (options) showPicker(code, members, options);
+    else showMembers(code, members, members.length > 1);
+  }
+
+  function showPicker(code, members, options) {
+    clearShare();
+    stateBox.textContent = "";
+    title.textContent = "Which suburb are you in?";
+    box.textContent = "";
+    box.appendChild(el("p", "meta", "Postcode " + code + " covers more than one federal electorate. Choose your suburb to see the right member."));
+    if (TEST_MODE && !SUBURB_DATA[code]) {
+      box.appendChild(el("p", "note", "Test version: these suburb names are placeholders, not real data."));
+    }
+    const list = el("div", "picker");
+    options.forEach(option => {
+      const choice = el("button", "pick", option.suburb);
+      choice.type = "button";
+      choice.onclick = () => {
+        const wanted = option.electorates.map(name => name.toLowerCase());
+        const matches = members.filter(m => wanted.includes(m.electorate.toLowerCase()));
+        const shown = matches.length ? matches : members;
+        showMembers(code, shown, shown.length > 1, option.suburb, () => showPicker(code, members, options));
+      };
+      list.appendChild(choice);
+    });
+    box.appendChild(list);
+  }
+
+  function showMembers(code, members, showNote, suburb, back) {
+    const many = members.length > 1;
+    title.textContent = (many ? "Your federal members for " : "Your federal member for ") + (suburb || code);
+    box.textContent = "";
+
+    if (back) {
+      const change = el("button", "pick small", "Change suburb");
+      change.type = "button";
+      change.onclick = back;
+      box.appendChild(change);
+    }
+
+    members.forEach(member => box.appendChild(makeMember(member)));
+    box.appendChild(el("p", "meta", SPOKEN_NOTE));
+
+    if (many && showNote) {
+      const where = suburb ? "This suburb" : "This postcode";
+      const note = el("p", "note", where + " covers more than one electorate, so every matching member is shown. ");
+      note.appendChild(makeLink("Check your electorate with the AEC", "https://electorate.aec.gov.au/"));
+      box.appendChild(note);
+    }
+    showState(code);
+    addShare(code);
+  }
+
   async function lookup(event) {
     if (event) event.preventDefault();
     const code = document.getElementById("postcode").value.trim();
@@ -329,23 +407,7 @@
         return;
       }
 
-      const many = data.members.length > 1;
-      title.textContent = (many ? "Your federal members for " : "Your federal member for ") + code;
-      box.textContent = "";
-      data.members.forEach(member => box.appendChild(makeMember(member)));
-      box.appendChild(el("p", "meta", "“In parliament” shows the opening of each member’s five most recent contributions in the House of Representatives, as recorded in Hansard, the official record of debates. Decisions made on the voices don’t record how each member voted, and a member who isn’t listed hasn’t necessarily been absent."));
-
-      if (many) {
-        const note = el("p", "note", "This postcode covers more than one electorate, so every matching member is shown. ");
-        const link = el("a", "", "Check your electorate with the AEC");
-        link.href = "https://electorate.aec.gov.au/";
-        link.target = "_blank";
-        link.rel = "noopener";
-        note.appendChild(link);
-        box.appendChild(note);
-      }
-      showState(code);
-      addShare(code);
+      showResults(code, data.members);
       history.replaceState(null, "", "?postcode=" + code);
     } catch (error) {
       showMessage("Couldn’t reach the lookup service", "Please check your connection and try again.");
