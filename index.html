@@ -64,7 +64,24 @@
   footer { background: var(--deep); color: #d6e4da; margin-top: 56px; padding: 28px 0; font-size: .9rem; }
   footer a { color: #fff; }
 
+  .chip { display: inline-block; margin: 8px 8px 0 0; padding: 2px 10px; border-radius: 999px; background: var(--tint); color: var(--green); font-size: .85rem; font-weight: 600; }
+  details.parl summary { font: 700 1.05rem Georgia, serif; }
+  details.parl summary small { font: 400 .85rem -apple-system, "Segoe UI", Helvetica, Arial, sans-serif; color: var(--muted); margin-left: 8px; }
+  .results-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+  .share { background: none; border: 1px solid var(--line); color: var(--green); padding: 6px 14px; font-size: .9rem; }
+  .share:hover { background: var(--tint); }
+  .member-block { animation: rise .35s ease both; }
+  @keyframes rise { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+  @media (prefers-reduced-motion: reduce) { .member-block { animation: none; } }
+
+  .go { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  .go a { display: block; padding: 14px 16px; background: #fff; border: 1px solid var(--line); border-radius: 8px; color: var(--ink); text-decoration: none; }
+  .go a:hover { border-color: var(--green); }
+  .go b { display: block; font: 700 1.05rem Georgia, serif; margin-bottom: 4px; }
+  .go span { color: var(--muted); font-size: .92rem; }
+
   @media (max-width: 640px) {
+    .go { grid-template-columns: 1fr; }
     .steps, .levels { grid-template-columns: 1fr; }
     .levels > div, .levels > div + div { padding: 0; border-left: 0; }
     .levels > div + div { margin-top: 24px; padding-top: 24px; border-top: 1px solid var(--line); }
@@ -100,29 +117,29 @@
 
   <section class="block">
     <div class="wrap">
-      <h2>How it works</h2>
-      <ol class="steps">
-        <li><b>Enter your postcode</b><span>Four digits is all we need.</span></li>
-        <li><b>See your federal member</b><span>You get their name, party, electorate and any ministerial role they hold.</span></li>
-        <li><b>Find your state member</b><span>We point you to your state electoral commission, which can match your full address.</span></li>
-      </ol>
+      <div class="levels">
+        <div>
+          <h3>Federal member</h3>
+          <p>Represents your local electorate in the House of Representatives in Canberra, where national laws are debated.</p>
+        </div>
+        <div>
+          <h3>State member</h3>
+          <p>Represents your district in your state parliament. A different person, covering a different area.</p>
+        </div>
+      </div>
+      <p class="source">Based on Parliament of Australia and Parliamentary Education Office information.</p>
     </div>
   </section>
 
   <section class="block">
     <div class="wrap">
-      <h2>Two levels of parliament, two different members</h2>
-      <div class="levels">
-        <div>
-          <h3>Your federal member</h3>
-          <p>Elected to the House of Representatives in Canberra to represent one local electorate. Federal members take part in debate on proposed national laws, and the party or coalition with the support of most members forms the government. Members face election at least every three years.</p>
-        </div>
-        <div>
-          <h3>Your state member</h3>
-          <p>Elected to your state parliament to represent a district, which covers a different area from your federal electorate. State parliaments make laws for their own state and run on their own election timetables. Your state member is a separate person from your federal member.</p>
-        </div>
+      <h2>See parliament for yourself</h2>
+      <div class="go">
+        <a href="https://www.aph.gov.au/live" target="_blank" rel="noopener"><b>Watch live</b><span>See debates as they happen, or catch up on recordings.</span></a>
+        <a href="https://aph.gov.au/Visit_Parliament/Whats_On/Event/Parliament_in_action" target="_blank" rel="noopener"><b>Watch Question Time</b><span>Usually 2 pm on sitting days. House tickets can be booked by phone.</span></a>
+        <a href="https://www.aph.gov.au/visit" target="_blank" rel="noopener"><b>Visit Parliament House</b><span>Opening hours, tours and exhibitions in Canberra.</span></a>
       </div>
-      <p class="source">Based on information from the Parliament of Australia and the Parliamentary Education Office.</p>
+      <p class="source">Sitting days, times and opening hours can change. Check the official pages before you go.</p>
     </div>
   </section>
 
@@ -151,7 +168,7 @@
 
 <script>
   // Paste your Lambda function URL between the quotes.
-  const FUNCTION_URL = "https://qbibqrc677wlnmrkywskgblcxu0hikmp.lambda-url.ap-southeast-2.on.aws/";
+  const FUNCTION_URL = "PASTE_YOUR_FUNCTION_URL_HERE";
 
   const title = document.getElementById("results-title");
   const section = document.getElementById("results-section");
@@ -183,25 +200,30 @@
   }
 
   function makeParliament(member) {
-    const wrap = el("div", "parl");
-    wrap.appendChild(el("h4", "", "In parliament"));
-
-    if (!Array.isArray(member.contributions)) {
-      wrap.appendChild(el("p", "meta", "We couldn’t load recent contributions just now."));
-    } else if (member.contributions.length === 0) {
-      wrap.appendChild(el("p", "meta", "No recent contributions found in the parliamentary record."));
-    } else {
-      const list = el("ul", "parl-list");
-      member.contributions.forEach(c => {
-        const li = el("li");
-        li.appendChild(el("div", "parl-date", formatDate(c.date)));
-        li.appendChild(el("div", "parl-title", c.title));
-        li.appendChild(el("p", "parl-text", c.excerpt));
-        if (c.url) li.appendChild(makeLink("Read the full record", c.url));
-        list.appendChild(li);
-      });
-      wrap.appendChild(list);
+    if (!Array.isArray(member.contributions) || member.contributions.length === 0) {
+      const wrap = el("div", "parl");
+      wrap.appendChild(el("h4", "", "In parliament"));
+      wrap.appendChild(el("p", "meta", Array.isArray(member.contributions)
+        ? "No recent contributions found in the parliamentary record."
+        : "We couldn’t load recent contributions just now."));
+      return wrap;
     }
+
+    const wrap = el("details", "parl");
+    const summary = el("summary", "", "What they said recently");
+    summary.appendChild(el("small", "", "latest: " + formatDate(member.contributions[0].date)));
+    wrap.appendChild(summary);
+
+    const list = el("ul", "parl-list");
+    member.contributions.forEach(c => {
+      const li = el("li");
+      li.appendChild(el("div", "parl-date", formatDate(c.date)));
+      li.appendChild(el("div", "parl-title", c.title));
+      li.appendChild(el("p", "parl-text", c.excerpt));
+      if (c.url) li.appendChild(makeLink("Read the full record", c.url));
+      list.appendChild(li);
+    });
+    wrap.appendChild(list);
 
     if (member.profile) {
       const more = el("p", "parl-more");
@@ -231,6 +253,7 @@
     const text = el("div");
     text.appendChild(el("h3", "", member.name));
     text.appendChild(el("p", "meta", member.party + " · Member for " + member.electorate));
+    if (member.since) text.appendChild(el("span", "chip", "In the House since " + member.since));
     (member.roles || []).forEach(role => text.appendChild(el("span", "role", role)));
     row.appendChild(text);
     return block;
@@ -242,6 +265,7 @@
   }
 
   function showMessage(heading, message) {
+    clearShare();
     section.hidden = false;
     title.textContent = heading;
     box.textContent = "";
@@ -266,8 +290,27 @@
     }
   }
 
+  function clearShare() {
+    document.querySelectorAll(".share").forEach(b => b.remove());
+  }
+
+  function addShare(code) {
+    clearShare();
+    const button = el("button", "share", "Copy link to this result");
+    button.type = "button";
+    button.onclick = async () => {
+      try {
+        await navigator.clipboard.writeText(location.origin + location.pathname + "?postcode=" + code);
+        button.textContent = "Link copied";
+      } catch (e) {
+        button.textContent = "Copy failed";
+      }
+    };
+    title.insertAdjacentElement("afterend", button);
+  }
+
   async function lookup(event) {
-    event.preventDefault();
+    if (event) event.preventDefault();
     const code = document.getElementById("postcode").value.trim();
 
     if (!/^\d{4}$/.test(code)) {
@@ -302,12 +345,20 @@
         box.appendChild(note);
       }
       showState(code);
+      addShare(code);
+      history.replaceState(null, "", "?postcode=" + code);
     } catch (error) {
       showMessage("Couldn’t reach the lookup service", "Please check your connection and try again.");
     }
   }
 
   document.getElementById("search").addEventListener("submit", lookup);
+
+  const startCode = new URLSearchParams(location.search).get("postcode");
+  if (startCode && /^\d{4}$/.test(startCode)) {
+    document.getElementById("postcode").value = startCode;
+    lookup();
+  }
 </script>
 </body>
 </html>
