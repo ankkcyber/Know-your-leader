@@ -25,9 +25,9 @@
 
   #results-section { padding: 36px 0 8px; }
   #results-section h2 { font-size: 1.6rem; }
-  .member-block { padding: 22px 0; border-bottom: 1px solid var(--line); }
+  .member-block { padding: 22px 0; border-bottom: 1px solid var(--line); display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 6fr); gap: 28px; align-items: start; }
   .member { display: flex; gap: 18px; }
-  .parl { margin-top: 18px; padding-left: 16px; border-left: 3px solid var(--line); }
+  .parl { margin-top: 0; padding-left: 16px; border-left: 3px solid var(--line); }
   .parl h4 { font: 700 1.05rem Georgia, serif; margin: 0 0 4px; }
   .parl-list { list-style: none; margin: 0; padding: 0; }
   .parl-list li { padding: 12px 0; border-top: 1px solid var(--line); }
@@ -84,6 +84,11 @@
   .pick { background: #fff; border: 1px solid var(--green); color: var(--green); padding: 10px 16px; font-size: 1rem; }
   .pick:hover { background: var(--tint); }
   .pick.small { padding: 6px 12px; font-size: .9rem; margin-bottom: 8px; }
+
+  @media (max-width: 700px) {
+    .member-block { display: block; }
+    .parl { margin-top: 18px; }
+  }
 
   @media (max-width: 640px) {
     .go { grid-template-columns: 1fr; }
@@ -215,6 +220,7 @@
     }
 
     const wrap = el("details", "parl");
+    if (window.matchMedia("(min-width: 701px)").matches) wrap.open = true;
     const summary = el("summary", "", "What they said recently");
     summary.appendChild(el("small", "", "latest: " + formatDate(member.contributions[0].date)));
     wrap.appendChild(summary);
@@ -401,15 +407,16 @@
       box.appendChild(change);
     }
 
-    members.forEach(member => box.appendChild(makeMember(member)));
-    box.appendChild(el("p", "meta", SPOKEN_NOTE));
-
     if (many && showNote) {
       const where = suburb ? "This suburb" : "This postcode";
       const note = el("p", "note", where + " covers more than one electorate, so every matching member is shown. ");
       note.appendChild(makeLink("Check your electorate with the AEC", "https://electorate.aec.gov.au/"));
       box.appendChild(note);
     }
+
+    members.forEach(member => box.appendChild(makeMember(member)));
+    box.appendChild(el("p", "meta", SPOKEN_NOTE));
+
     showState(code);
     addShare(code);
   }
