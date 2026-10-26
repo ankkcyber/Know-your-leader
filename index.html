@@ -314,11 +314,38 @@
     title.insertAdjacentElement("afterend", button);
   }
 
-  // Suburb data: add real entries later, for example
-  // "2000": [{ suburb: "Suburb name", electorates: ["Electorate name"] }, ...]
-  const SUBURB_DATA = {};
-  // TEST_MODE builds placeholder suburbs so the picker can be tried before real data is loaded.
-  const TEST_MODE = true;
+  // Suburb data, by postcode: [{ suburb: "Name", electorates: ["Electorate", ...] }, ...]
+  const SUBURB_DATA = {
+    // Entered from the AEC Find my electorate lookup (read from screenshots, 26 Oct 2026). Check before launch.
+    "2765": [
+      { suburb: "Angus", electorates: ["Chifley"] },
+      { suburb: "Berkshire Park", electorates: ["Lindsay"] },
+      { suburb: "Box Hill", electorates: ["Greenway"] },
+      { suburb: "Gables", electorates: ["Greenway"] },
+      { suburb: "Grantham Farm", electorates: ["Greenway"] },
+      { suburb: "Maraylya", electorates: ["Berowra", "Greenway", "Macquarie"] },
+      { suburb: "Marsden Park", electorates: ["Chifley"] },
+      { suburb: "Melonba", electorates: ["Chifley"] },
+      { suburb: "Nelson", electorates: ["Greenway"] },
+      { suburb: "Oakville", electorates: ["Macquarie"] },
+      { suburb: "Richards", electorates: ["Chifley"] },
+      { suburb: "Riverstone", electorates: ["Chifley", "Greenway"] },
+      { suburb: "Vineyard", electorates: ["Greenway", "Macquarie"] }
+    ],
+    "2145": [
+      { suburb: "Constitution Hill", electorates: ["Parramatta"] },
+      { suburb: "Girraween", electorates: ["Parramatta"] },
+      { suburb: "Greystanes", electorates: ["Blaxland", "Parramatta", "McMahon"] },
+      { suburb: "Mays Hill", electorates: ["Parramatta"] },
+      { suburb: "Pemulwuy", electorates: ["McMahon"] },
+      { suburb: "Pendle Hill", electorates: ["Parramatta"] },
+      { suburb: "South Wentworthville", electorates: ["Blaxland", "Parramatta"] },
+      { suburb: "Wentworthville", electorates: ["Parramatta"] },
+      { suburb: "Westmead", electorates: ["Parramatta"] }
+    ]
+  };
+  // TEST_MODE builds placeholder suburbs for postcodes without real data. Keep it false for anything public.
+  const TEST_MODE = false;
 
   const SPOKEN_NOTE = "“In parliament” shows the opening of each member’s five most recent contributions in the House of Representatives, as recorded in Hansard, the official record of debates. Decisions made on the voices don’t record how each member voted, and a member who isn’t listed hasn’t necessarily been absent.";
 
