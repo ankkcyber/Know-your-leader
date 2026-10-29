@@ -85,6 +85,8 @@
   .pick:hover { background: var(--tint); }
   .pick.small { padding: 6px 12px; font-size: .9rem; margin-bottom: 8px; }
 
+  .support-text { max-width: 40em; margin: 0 0 4px; }
+
   @media (max-width: 700px) {
     .member-block { display: block; }
     .parl { margin-top: 18px; }
@@ -170,6 +172,19 @@
       </details>
     </div>
   </section>
+  <section class="block" id="support" hidden>
+    <div class="wrap">
+      <h2>Support this site</h2>
+      <p class="support-text">Know Your Leader is an independent project. If it’s useful, you can help with running costs. You’ll pay on Stripe’s secure page, and this site never sees your card details.</p>
+      <div class="picker" id="support-buttons">
+        <button type="button" class="pick" data-cents="500">$5</button>
+        <button type="button" class="pick" data-cents="1000">$10</button>
+        <button type="button" class="pick" data-cents="2000">$20</button>
+        <button type="button" class="pick" data-cents="5000">$50</button>
+      </div>
+      <p class="source" id="support-message" aria-live="polite"></p>
+    </div>
+  </section>
 </main>
 
 <footer>
@@ -178,7 +193,7 @@
 
 <script>
   // Paste your Lambda function URL between the quotes.
-  const FUNCTION_URL = "https://qbibqrc677wlnmrkywskgblcxu0hikmp.lambda-url.ap-southeast-2.on.aws/";
+  const FUNCTION_URL = "https://zw7vylwnqi6zzjcrqqvvl6nrmy0isvvi.lambda-url.ap-southeast-2.on.aws/";
 
   const title = document.getElementById("results-title");
   const section = document.getElementById("results-section");
@@ -446,6 +461,40 @@
     } catch (error) {
       showMessage("Couldn’t reach the lookup service", "Please check your connection and try again.");
     }
+  }
+
+  // Support button. Paste the function URL of your kyl-support-checkout Lambda between the quotes.
+  // While it still says PASTE..., the Support section stays hidden.
+  const SUPPORT_URL = "PASTE_YOUR_SUPPORT_FUNCTION_URL_HERE";
+
+  if (SUPPORT_URL.startsWith("https://")) {
+    document.getElementById("support").hidden = false;
+    const supportMessage = document.getElementById("support-message");
+    const supportButtons = [...document.querySelectorAll("#support-buttons button")];
+
+    supportButtons.forEach(button => {
+      button.addEventListener("click", async () => {
+        supportButtons.forEach(b => (b.disabled = true));
+        supportMessage.textContent = "Taking you to Stripe’s secure page…";
+        try {
+          const response = await fetch(SUPPORT_URL, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ amount: Number(button.dataset.cents) })
+          });
+          const data = await response.json();
+          // Only ever send the visitor to Stripe's own checkout address.
+          if (response.ok && data.url && new URL(data.url).hostname === "checkout.stripe.com") {
+            window.location.href = data.url;
+            return;
+          }
+          supportMessage.textContent = data.error || "Sorry, we couldn’t start the payment.";
+        } catch (error) {
+          supportMessage.textContent = "Sorry, we couldn’t reach the payment service. Please try again.";
+        }
+        supportButtons.forEach(b => (b.disabled = false));
+      });
+    });
   }
 
   document.getElementById("search").addEventListener("submit", lookup);
